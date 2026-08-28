@@ -26,9 +26,11 @@ export default function App() {
 
   const handleLogin = async () => {
     try {
+      console.log("Checking API Key:", import.meta.env.VITE_FIREBASE_API_KEY); // Debug check
       await signInWithPopup(auth, googleProvider);
     } catch (error) {
       console.error("Login Error:", error);
+      alert(`Firebase Error: ${error.message}`); // This will pop up on your screen!
     }
   };
 
