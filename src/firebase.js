@@ -3,14 +3,13 @@ import { initializeApp } from 'firebase/app';
 import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 
-// REPLACE THIS OBJECT WITH YOUR ACTUAL CONFIG FROM STEP 2
 const firebaseConfig = {
-  apiKey: "AIzaSyCZt6jA48b0UOiNQdwUMH3uOFEAQZVM_gc",
-  authDomain: "aio-calender.firebaseapp.com",
-  projectId: "aio-calender",
-  storageBucket: "aio-calender.firebasestorage.app",
-  messagingSenderId: "961314076425",
-  appId: "1:961314076425:web:5f43508f3b53840af185d8"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
 // Initialize Firebase
