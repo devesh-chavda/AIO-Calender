@@ -71,7 +71,6 @@ function App() {
   const weekDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   const dayValues = { Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6, Sunday: 7 };
   
-  // NEW: State for Mobile Grid Day Selection
   const [activeGridDay, setActiveGridDay] = useState(weekDays.includes(currentDayStr) ? currentDayStr : 'Monday');
 
   const sortedClasses = [...currentClasses].sort((a, b) => {
@@ -202,8 +201,17 @@ function App() {
                 <input type="text" placeholder="Course Name" value={newClass.courseName} onChange={(e) => setNewClass({...newClass, courseName: e.target.value})} className="p-2 rounded-md border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#1a1a20] text-gray-900 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 lg:col-span-2 focus:ring-2 focus:ring-blue-500 dark:focus:ring-red-500 outline-none" />
                 
                 <input type="text" placeholder="Section (e.g. 2)" value={newClass.section} onChange={(e) => setNewClass({...newClass, section: e.target.value})} className="p-2 rounded-md border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#1a1a20] text-gray-900 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-500 dark:focus:ring-red-500 outline-none" />
-                <input type="time" required value={newClass.startTime} onChange={(e) => setNewClass({...newClass, startTime: e.target.value})} className="p-2 rounded-md border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#1a1a20] text-gray-900 dark:text-gray-200 dark:[color-scheme:dark] focus:ring-2 focus:ring-blue-500 dark:focus:ring-red-500 outline-none cursor-pointer" />
-                <input type="time" required value={newClass.endTime} onChange={(e) => setNewClass({...newClass, endTime: e.target.value})} className="p-2 rounded-md border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#1a1a20] text-gray-900 dark:text-gray-200 dark:[color-scheme:dark] focus:ring-2 focus:ring-blue-500 dark:focus:ring-red-500 outline-none cursor-pointer" />
+                
+                {/* UPDATED TIME INPUTS WITH LABELS */}
+                <div className="flex items-center bg-gray-50 dark:bg-[#1a1a20] border border-gray-200 dark:border-gray-700 rounded-md px-3 py-2 focus-within:ring-2 focus-within:ring-blue-500 dark:focus-within:ring-red-500">
+                  <span className="text-xs text-gray-500 font-medium mr-2 whitespace-nowrap">Start:</span>
+                  <input type="time" required value={newClass.startTime} onChange={(e) => setNewClass({...newClass, startTime: e.target.value})} className="bg-transparent w-full outline-none text-gray-900 dark:text-gray-200 dark:[color-scheme:dark] cursor-pointer" />
+                </div>
+                <div className="flex items-center bg-gray-50 dark:bg-[#1a1a20] border border-gray-200 dark:border-gray-700 rounded-md px-3 py-2 focus-within:ring-2 focus-within:ring-blue-500 dark:focus-within:ring-red-500">
+                  <span className="text-xs text-gray-500 font-medium mr-2 whitespace-nowrap">End:</span>
+                  <input type="time" required value={newClass.endTime} onChange={(e) => setNewClass({...newClass, endTime: e.target.value})} className="bg-transparent w-full outline-none text-gray-900 dark:text-gray-200 dark:[color-scheme:dark] cursor-pointer" />
+                </div>
+
                 <input type="text" placeholder="Building (e.g. GICT)" value={newClass.building} onChange={(e) => setNewClass({...newClass, building: e.target.value})} className="p-2 rounded-md border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#1a1a20] text-gray-900 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-500 dark:focus:ring-red-500 outline-none" />
                 
                 <div className="flex gap-2 lg:col-span-4">
@@ -321,7 +329,7 @@ function App() {
         </div>
       )}
 
-      {/* CALENDAR GRID VIEW - UPDATED FOR MOBILE RESPONSIVENESS */}
+      {/* CALENDAR GRID VIEW */}
       {activeView === 'calendar' && (
         <div className="bg-white dark:bg-[#121215] rounded-xl shadow-sm dark:shadow-[0_0_15px_rgba(239,68,68,0.15)] border border-gray-100 dark:border-red-900/30 flex-1 flex flex-col animate-in fade-in duration-300 overflow-hidden">
           
@@ -333,22 +341,37 @@ function App() {
           </div>
 
           <div className="flex-1 overflow-auto">
-            {/* Desktop retains the 800px min-width, mobile collapses nicely */}
             <div className="min-w-full lg:min-w-[800px] w-full relative pb-4">
               
-              {/* Header Row (Days) - Acts as Tabs on Mobile */}
-              <div className="flex border-b border-gray-200 dark:border-gray-800 sticky top-0 bg-white dark:bg-[#121215] z-20 shadow-sm">
-                  <div className="w-12 sm:w-16 shrink-0 bg-gray-50 dark:bg-[#1a1a20]"></div> 
+              {/* Header Row - DESKTOP (6 Columns) */}
+              <div className="hidden lg:flex border-b border-gray-200 dark:border-gray-800 sticky top-0 bg-white dark:bg-[#121215] z-20 shadow-sm">
+                  <div className="w-16 shrink-0 bg-gray-50 dark:bg-[#1a1a20]"></div> 
                   {weekDays.map(day => (
-                      <div key={day} 
-                           onClick={() => setActiveGridDay(day)}
-                           className={`flex-1 text-center py-3 font-bold text-xs sm:text-sm border-l border-gray-200 dark:border-gray-800 cursor-pointer lg:cursor-default transition-colors 
-                           ${activeGridDay === day ? 'bg-gray-100 dark:bg-gray-800/80 border-b-2 border-b-blue-500 dark:border-b-red-500 lg:border-b-0 lg:bg-transparent lg:dark:bg-transparent block' : 'hidden lg:block'} 
-                           ${day === currentDayStr ? 'text-blue-600 dark:text-red-400' : 'text-gray-700 dark:text-gray-300'}`}>
+                      <div key={day} className={`flex-1 text-center py-3 font-bold text-sm border-l border-gray-200 dark:border-gray-800 ${day === currentDayStr ? 'text-blue-600 dark:text-red-400 bg-blue-50/50 dark:bg-red-900/10' : 'text-gray-700 dark:text-gray-300'}`}>
                           {day.substring(0,3).toUpperCase()}
                       </div>
                   ))}
               </div>
+
+              {/* Header Row - MOBILE (Interactive Dropdown showing Full Day Name) */}
+              <div className="flex lg:hidden border-b border-gray-200 dark:border-gray-800 sticky top-0 bg-white dark:bg-[#121215] z-20 shadow-sm">
+                  <div className="w-12 sm:w-16 shrink-0 bg-gray-50 dark:bg-[#1a1a20]"></div> 
+                  <div className="flex-1 border-l border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-[#1a1a20]">
+                      <select 
+                          value={activeGridDay}
+                          onChange={(e) => setActiveGridDay(e.target.value)}
+                          className="w-full text-center py-3 font-bold text-sm bg-transparent outline-none text-blue-600 dark:text-red-400 appearance-none cursor-pointer"
+                          style={{ textAlignLast: 'center' }}
+                      >
+                          {weekDays.map(day => (
+                              <option key={day} value={day} className="text-gray-900 dark:text-gray-200 bg-white dark:bg-[#121215]">
+                                  {day} ▾
+                              </option>
+                          ))}
+                      </select>
+                  </div>
+              </div>
+
 
               {/* Grid Body */}
               <div className="flex relative" style={{ height: '800px' }}>
