@@ -71,6 +71,9 @@ function App() {
   const weekDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   const dayValues = { Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6, Sunday: 7 };
   
+  // NEW: State for Mobile Grid Day Selection
+  const [activeGridDay, setActiveGridDay] = useState(weekDays.includes(currentDayStr) ? currentDayStr : 'Monday');
+
   const sortedClasses = [...currentClasses].sort((a, b) => {
     if (dayValues[a.day] !== dayValues[b.day]) return dayValues[a.day] - dayValues[b.day];
     return a.startTime.localeCompare(b.startTime); 
@@ -113,29 +116,23 @@ function App() {
   const handleDeleteTask = (id) => setTasks(tasks.filter(t => t.id !== id));
   const toggleTaskCompletion = (id) => setTasks(tasks.map(t => t.id === id ? { ...t, completed: !t.completed } : t));
 
-  // ==========================================
-  // NEW: CALENDAR GRID MATH & COLOR ENGINE
-  // ==========================================
-  const startHour = 8; // 8:00 AM
-  const endHour = 20;  // 8:00 PM (20:00)
+  // 7. Grid Math Engine
+  const startHour = 8; 
+  const endHour = 20;  
   const totalMinutes = (endHour - startHour) * 60;
   const hoursArray = Array.from({ length: endHour - startHour + 1 }, (_, i) => i + startHour);
 
-  // Calculates Top % and Height % for absolute positioning
   const getEventStyle = (startTime, endTime) => {
     const [startH, startM] = startTime.split(':').map(Number);
     const [endH, endM] = endTime.split(':').map(Number);
-
     const topMinutes = (startH - startHour) * 60 + startM;
     const durationMinutes = (endH * 60 + endM) - (startH * 60 + startM);
-
     return {
       top: `${(topMinutes / totalMinutes) * 100}%`,
       height: `${(durationMinutes / totalMinutes) * 100}%`
     };
   };
 
-  // Array of tailwind colors to match your uploaded screenshot
   const eventColors = [
     'bg-blue-100 border-blue-500 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-600',
     'bg-green-100 border-green-500 text-green-800 dark:bg-green-900/30 dark:text-green-300 dark:border-green-600',
@@ -145,7 +142,6 @@ function App() {
     'bg-orange-100 border-orange-500 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-600',
   ];
 
-  // Pseudo-randomly assigns a stable color based on the course code string
   const getEventColor = (courseCode) => {
     if (!courseCode) return eventColors[0];
     const sum = courseCode.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
@@ -170,7 +166,6 @@ function App() {
           <p className="text-gray-500 dark:text-gray-400 mt-1">Your Schedule & Tasks</p>
         </div>
         
-        {/* VIEW TOGGLE */}
         <div className="flex bg-gray-200 dark:bg-[#1a1a20] p-1 rounded-lg border border-gray-300 dark:border-gray-800 w-fit">
           <button onClick={() => setActiveView('list')} className={`px-6 py-2 rounded-md text-sm font-bold transition-all duration-200 ${activeView === 'list' ? 'bg-white dark:bg-gray-700 shadow-sm text-blue-600 dark:text-red-400' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'}`}>
             📋 List View
@@ -191,9 +186,7 @@ function App() {
         </div>
       </header>
 
-      {/* ========================================== */}
-      {/* CONDITIONAL RENDERING: LIST VIEW */}
-      {/* ========================================== */}
+      {/* LIST VIEW */}
       {activeView === 'list' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in duration-300 pb-8 flex-1 overflow-y-auto pr-2">
           
@@ -328,9 +321,7 @@ function App() {
         </div>
       )}
 
-      {/* ========================================== */}
-      {/* CONDITIONAL RENDERING: CALENDAR GRID VIEW  */}
-      {/* ========================================== */}
+      {/* CALENDAR GRID VIEW - UPDATED FOR MOBILE RESPONSIVENESS */}
       {activeView === 'calendar' && (
         <div className="bg-white dark:bg-[#121215] rounded-xl shadow-sm dark:shadow-[0_0_15px_rgba(239,68,68,0.15)] border border-gray-100 dark:border-red-900/30 flex-1 flex flex-col animate-in fade-in duration-300 overflow-hidden">
           
@@ -342,13 +333,18 @@ function App() {
           </div>
 
           <div className="flex-1 overflow-auto">
-            <div className="min-w-[800px] w-full relative pb-4">
+            {/* Desktop retains the 800px min-width, mobile collapses nicely */}
+            <div className="min-w-full lg:min-w-[800px] w-full relative pb-4">
               
-              {/* Header Row (Days) */}
+              {/* Header Row (Days) - Acts as Tabs on Mobile */}
               <div className="flex border-b border-gray-200 dark:border-gray-800 sticky top-0 bg-white dark:bg-[#121215] z-20 shadow-sm">
-                  <div className="w-16 shrink-0 bg-gray-50 dark:bg-[#1a1a20]"></div> 
+                  <div className="w-12 sm:w-16 shrink-0 bg-gray-50 dark:bg-[#1a1a20]"></div> 
                   {weekDays.map(day => (
-                      <div key={day} className={`flex-1 text-center py-3 font-bold text-sm border-l border-gray-200 dark:border-gray-800 ${day === currentDayStr ? 'text-blue-600 dark:text-red-400 bg-blue-50/50 dark:bg-red-900/10' : 'text-gray-700 dark:text-gray-300'}`}>
+                      <div key={day} 
+                           onClick={() => setActiveGridDay(day)}
+                           className={`flex-1 text-center py-3 font-bold text-xs sm:text-sm border-l border-gray-200 dark:border-gray-800 cursor-pointer lg:cursor-default transition-colors 
+                           ${activeGridDay === day ? 'bg-gray-100 dark:bg-gray-800/80 border-b-2 border-b-blue-500 dark:border-b-red-500 lg:border-b-0 lg:bg-transparent lg:dark:bg-transparent block' : 'hidden lg:block'} 
+                           ${day === currentDayStr ? 'text-blue-600 dark:text-red-400' : 'text-gray-700 dark:text-gray-300'}`}>
                           {day.substring(0,3).toUpperCase()}
                       </div>
                   ))}
@@ -358,9 +354,9 @@ function App() {
               <div className="flex relative" style={{ height: '800px' }}>
                   
                   {/* Time Labels (Y-axis) */}
-                  <div className="w-16 shrink-0 flex flex-col relative border-r border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-[#1a1a20]">
+                  <div className="w-12 sm:w-16 shrink-0 flex flex-col relative border-r border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-[#1a1a20]">
                       {hoursArray.map(hour => (
-                          <div key={hour} className="absolute w-full text-right pr-3 text-[11px] font-bold text-gray-400 dark:text-gray-500"
+                          <div key={hour} className="absolute w-full text-right pr-2 sm:pr-3 text-[10px] sm:text-[11px] font-bold text-gray-400 dark:text-gray-500"
                                style={{ top: `${((hour - startHour) / (endHour - startHour)) * 100}%`, transform: 'translateY(-50%)' }}>
                               {format12Hour(`${hour.toString().padStart(2, '0')}:00`)}
                           </div>
@@ -369,7 +365,9 @@ function App() {
 
                   {/* Day Columns */}
                   {weekDays.map(day => (
-                      <div key={day} className={`flex-1 relative border-l border-gray-200 dark:border-gray-800 ${day === currentDayStr ? 'bg-blue-50/30 dark:bg-red-900/5' : ''}`}>
+                      <div key={day} className={`flex-1 relative border-l border-gray-200 dark:border-gray-800 
+                          ${activeGridDay === day ? 'block' : 'hidden lg:block'} 
+                          ${day === currentDayStr ? 'bg-blue-50/30 dark:bg-red-900/5' : ''}`}>
                           
                           {/* Horizontal Grid Lines */}
                           {hoursArray.map(hour => (
@@ -388,8 +386,8 @@ function App() {
                                        style={style}>
                                       <div className="font-extrabold truncate text-[11px] uppercase tracking-wider">{lecture.courseCode}</div>
                                       <div className="truncate font-bold opacity-90">{lecture.courseName}</div>
-                                      <div className="opacity-75 mt-1 font-medium">{format12Hour(lecture.startTime)} - {format12Hour(lecture.endTime)}</div>
-                                      {lecture.room && <div className="opacity-75 font-medium truncate mt-0.5">Room {lecture.room}</div>}
+                                      <div className="opacity-75 mt-1 font-medium text-[10px] sm:text-xs">{format12Hour(lecture.startTime)} - {format12Hour(lecture.endTime)}</div>
+                                      {lecture.room && <div className="opacity-75 font-medium truncate mt-0.5 text-[10px] sm:text-xs">Room {lecture.room}</div>}
                                   </div>
                               );
                           })}
