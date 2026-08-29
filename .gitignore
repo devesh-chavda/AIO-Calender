@@ -27,3 +27,10 @@ dist-ssr
 .env
 .env.local
 .env.*
+app/google-services.json
+
+# Google Services & Secrets
+google-services.json
+android/app/google-services.json
+.env
+.env.local
