@@ -1,3 +1,42 @@
+# ==============================================================================
+# 1. Environment & API Secrets
+# ==============================================================================
+.env
+.env.*
+!.env.example
+*.local
+
+# Google & Firebase Credentials
+google-services.json
+**/google-services.json
+*serviceAccountKey*.json
+*firebase-adminsdk*.json
+
+# Android Signing Keys & Keystores
+*.jks
+*.keystore
+*.p8
+*.p12
+
+# ==============================================================================
+# 2. Android Studio & Gradle
+# ==============================================================================
+local.properties
+.gradle/
+**/build/
+android/.gradle/
+android/app/build/
+android/build/
+*.apk
+*.aab
+
+# ==============================================================================
+# 3. Dependencies & Web Build Outputs
+# ==============================================================================
+node_modules/
+dist/
+dist-ssr/
+
 # Logs
 logs
 *.log
@@ -7,30 +46,16 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
-
-# Editor directories and files
+# ==============================================================================
+# 4. Editors & Operating System
+# ==============================================================================
 .vscode/*
 !.vscode/extensions.json
-.idea
+.idea/
 .DS_Store
+Thumbs.db
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
-
-# local env files
-.env
-.env.local
-.env.*
-app/google-services.json
-
-# Google Services & Secrets
-google-services.json
-android/app/google-services.json
-.env
-.env.local
