@@ -1,8 +1,16 @@
 import { useState, useEffect } from 'react';
 import { auth, googleProvider, db } from './firebase';
-import { onAuthStateChanged, signInWithPopup, signOut } from 'firebase/auth';
+import { 
+  onAuthStateChanged, 
+  signInWithPopup, 
+  signOut, 
+  signInWithCredential, 
+  GoogleAuthProvider 
+} from 'firebase/auth';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
-import { requestNotificationPermission, scheduleTestNotification } from './notifications';
+import { setupNotifications, syncAllAlarms, scheduleTestNotification } from "./notifications";
+import { Capacitor } from '@capacitor/core';
+import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 
 // ==========================================
 // 1. AUTHENTICATION WRAPPER
@@ -27,11 +35,24 @@ export default function App() {
 
   const handleLogin = async () => {
     try {
-      console.log("Checking API Key:", import.meta.env.VITE_FIREBASE_API_KEY); // Debug check
-      await signInWithPopup(auth, googleProvider);
+      if (Capacitor.isNativePlatform()) {
+        // Explicitly pass your Web Client ID here:
+        await GoogleAuth.initialize({
+          clientId: '961314076425-u40ge3pvq3loqj7sro38u9p6ucl592jo.apps.googleusercontent.com',
+          scopes: ['profile', 'email'],
+          grantOfflineAccess: true,
+        });
+
+        const googleUser = await GoogleAuth.signIn();
+        const credential = GoogleAuthProvider.credential(googleUser.authentication.idToken);
+        await signInWithCredential(auth, credential);
+      } else {
+        // Web / Vercel: Standard Popup
+        await signInWithPopup(auth, googleProvider);
+      }
     } catch (error) {
       console.error("Login Error:", error);
-      alert(`Firebase Error: ${error.message}`); // This will pop up on your screen!
+      alert(`Login Failed: ${error.message || JSON.stringify(error)}`); 
     }
   };
 
@@ -94,7 +115,7 @@ function MainDashboard({ user }) {
   const [notifSettings, setNotifSettings] = useState(null);
   const [syncError, setSyncError] = useState(null);
 
-  const defaultNotifs = { classNotifs: true, classLeadTime: '10', taskNotifs: true, taskLeadTime: '60', taskRepeatFrequency: 'daily' };
+  const defaultNotifs = { classNotifs: true, classLeadTime: '10', taskNotifs: true, taskLeadTime: '60', taskRepeatFrequency: 'daily', vibrateEnabled: true };
 
   // Form State
   const [newClass, setNewClass] = useState({
@@ -127,6 +148,22 @@ function MainDashboard({ user }) {
   useEffect(() => {
     if (activeSemester) localStorage.setItem('aio-active-sem', activeSemester);
   }, [activeSemester]);
+  // ====================================================
+  // PASTE THE TWO NEW BLOCKS RIGHT HERE!
+  // ====================================================
+  // 1. Set up the Android Notification Channels
+  useEffect(() => {
+    setupNotifications();
+  }, []);
+
+  // 2. Monitor Firebase data to rebuild the alarms dynamically
+  useEffect(() => {
+    if (allSchedules && tasks && notifSettings) {
+      const currentClasses = allSchedules[activeSemester] || [];
+      syncAllAlarms(currentClasses, tasks, notifSettings);
+    }
+  }, [allSchedules, tasks, activeSemester, notifSettings]);
+  // ====================================================
 
   // ----------------------------------------
   // FIREBASE REAL-TIME SYNC LISTENER
@@ -665,6 +702,21 @@ function MainDashboard({ user }) {
                   </div>
                 )}
               </div>
+              {/* --- VIBRATION TOGGLE --- */}
+              <div className="p-4 bg-gray-50 dark:bg-[#1a1a20] rounded-xl border border-gray-200 dark:border-gray-800 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-bold text-md">Haptic Feedback</h3>
+                    <p className="text-xs text-gray-500">Allow notifications to physically vibrate the device.</p>
+                  </div>
+                  <input 
+                    type="checkbox" 
+                    checked={notifSettings.vibrateEnabled !== false} 
+                    onChange={(e) => handleNotifSettingsChange('vibrateEnabled', e.target.checked)} 
+                    className="h-5 w-5 accent-blue-600 dark:accent-red-600 cursor-pointer" 
+                  />
+                </div>
+              </div>
             </div>
           </div>
           <div className="bg-white dark:bg-[#121215] rounded-xl shadow-sm p-6 border border-gray-100 dark:border-gray-800">
@@ -686,7 +738,7 @@ function MainDashboard({ user }) {
               <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">Grant Android access to send lock-screen alerts.</p>
             </div>
             <button 
-              onClick={scheduleTestNotification}
+              onClick={() => scheduleTestNotification(notifSettings.vibrateEnabled)}
               className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-sm transition-colors text-sm whitespace-nowrap cursor-pointer">
               🔔 Test Native Alert
             </button>

@@ -1,5 +1,12 @@
 {
-  "appId": "com.aiocalender",
+  "appId": "com.aiocalender.app",
   "appName": "AIO-Calender",
-  "webDir": "dist"
+  "webDir": "dist",
+  "plugins": {
+    "GoogleAuth": {
+      "scopes": ["profile", "email"],
+      "serverClientId": "961314076425-u40ge3pvq3loqj7sro38u9p6ucl592jo.apps.googleusercontent.com",
+      "forceCodeForRefreshToken": true
+    }
+  }
 }
