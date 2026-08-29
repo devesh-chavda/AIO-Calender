@@ -9,14 +9,18 @@
 # Google & Firebase Credentials
 google-services.json
 **/google-services.json
+GoogleService-Info.plist
+**/GoogleService-Info.plist
 *serviceAccountKey*.json
 *firebase-adminsdk*.json
 
-# Android Signing Keys & Keystores
+# Android/iOS Signing Keys & Keystores
 *.jks
 *.keystore
 *.p8
 *.p12
+*.mobileprovision
+*.cer
 
 # ==============================================================================
 # 2. Android Studio & Gradle

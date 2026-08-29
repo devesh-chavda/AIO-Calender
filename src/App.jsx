@@ -730,20 +730,6 @@ function MainDashboard({ user }) {
               <span className="text-2xl">✅</span>
             </div>
           </div>
-
-          {/* --- NATIVE NOTIFICATION TESTER --- */}
-          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-4 rounded-xl mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-              <h3 className="font-bold text-blue-800 dark:text-blue-300">Device Permissions</h3>
-              <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">Grant Android access to send lock-screen alerts.</p>
-            </div>
-            <button 
-              onClick={() => scheduleTestNotification(notifSettings.vibrateEnabled)}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-sm transition-colors text-sm whitespace-nowrap cursor-pointer">
-              🔔 Test Native Alert
-            </button>
-          </div>
-          
         </div>
       )} {/* <-- This correctly closes the Settings Tab! */}
 
