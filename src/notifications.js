@@ -85,8 +85,8 @@ export async function syncAllAlarms(classes, tasks, settings) {
 
       tasks.forEach((task) => {
         if (!task.completed && task.due && task.time) {
-          // Parse user input (e.g., "25 Aug" + "14:30") into a real Date object
-          const dateString = `${task.due} ${currentYear} ${task.time}`;
+          // Parse native HTML5 date (YYYY-MM-DD) and time (HH:MM)
+          const dateString = `${task.due}T${task.time}:00`;
           const targetDate = new Date(dateString);
           
           // Subtract the lead time

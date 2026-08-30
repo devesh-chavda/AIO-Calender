@@ -69,7 +69,7 @@ export default function App() {
       <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0c] flex flex-col items-center justify-center p-4 transition-colors">
         <div className="bg-white dark:bg-[#121215] p-8 md:p-12 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 text-center max-w-md w-full">
           <h1 className="text-4xl font-bold text-gray-900 dark:text-transparent dark:bg-clip-text dark:bg-gradient-to-r dark:from-red-500 dark:to-purple-600 mb-2">
-            AIO Calendar
+            AIO Calender
           </h1>
           <p className="text-gray-500 dark:text-gray-400 mb-8 font-medium">Sign in to sync your schedule across all devices.</p>
           
@@ -97,17 +97,44 @@ function MainDashboard({ user }) {
   // ----------------------------------------
   
   // UI State
+  const [gridContentType, setGridContentType] = useState('Lectures'); // New Toggle State
   const [activeTab, setActiveTab] = useState('dashboard'); 
   const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('aio-theme') === 'dark');
   const [activeView, setActiveView] = useState('list'); 
   const [activeSemester, setActiveSemester] = useState(() => localStorage.getItem('aio-active-sem') || 'Monsoon 2026');
   const [viewFilter, setViewFilter] = useState('Today'); 
   
-  // Date/Grid Configuration
+  // Date/Grid Configuration Constants (Moved up for safe access)
+  const startHour = 8; 
+  const endHour = 20;  
+  const totalMinutes = (endHour - startHour) * 60;
+  const hoursArray = Array.from({ length: endHour - startHour + 1 }, (_, i) => i + startHour);
+
   const initialDayStr = new Date().toLocaleDateString('en-US', { weekday: 'long' });
-  const weekDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const ALL_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
   const dayValues = { Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6, Sunday: 7 };
-  const [activeGridDay, setActiveGridDay] = useState(weekDays.includes(initialDayStr) ? initialDayStr : 'Monday');
+  const [activeGridDay, setActiveGridDay] = useState(ALL_DAYS.includes(initialDayStr) ? initialDayStr : 'Monday');
+
+  // Dynamic array: hides Sunday for lectures, shows it for tasks
+  const displayDays = gridContentType === 'Lectures' 
+    ? ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] 
+    : ALL_DAYS;
+
+  // Helper to position a task on the grid based on time
+  const getTaskStyle = (time) => {
+    if (!time) return { top: '0%', height: '40px' };
+    const [h, m] = time.split(':').map(Number);
+    let topMinutes = (h - startHour) * 60 + m;
+    
+    // Keep tasks inside the visible grid even if they are due at 11:59 PM
+    if (topMinutes > totalMinutes - 40) topMinutes = totalMinutes - 40;
+    if (topMinutes < 0) topMinutes = 0;
+
+    return {
+      top: `${(topMinutes / totalMinutes) * 100}%`,
+      height: '45px',
+    };
+  };
 
   // Cloud Data State
   const [allSchedules, setAllSchedules] = useState(null);
@@ -303,11 +330,6 @@ function MainDashboard({ user }) {
     return `${hours % 12 || 12}:${m} ${suffix}`;
   };
 
-  const startHour = 8; 
-  const endHour = 20;  
-  const totalMinutes = (endHour - startHour) * 60;
-  const hoursArray = Array.from({ length: endHour - startHour + 1 }, (_, i) => i + startHour);
-
   const getEventStyle = (startTime, endTime) => {
     const [startH, startM] = startTime.split(':').map(Number);
     const [endH, endM] = endTime.split(':').map(Number);
@@ -342,7 +364,7 @@ function MainDashboard({ user }) {
         <div className="flex justify-between items-center w-full xl:w-auto">
           <div className="flex items-center gap-3">
             <h1 className="text-3xl font-bold text-gray-900 dark:text-transparent dark:bg-clip-text dark:bg-gradient-to-r dark:from-red-500 dark:to-purple-600">
-              AIO Calendar
+              AIO Calender
             </h1>
           </div>
           <button onClick={() => setIsDarkMode(!isDarkMode)} className="md:hidden p-2 rounded-lg bg-gray-200 dark:bg-gray-800 text-lg">
@@ -385,7 +407,7 @@ function MainDashboard({ user }) {
 
           {/* 3. User Profile & Logout (Moved to the extreme right) */}
           <div className="flex items-center gap-3 bg-white dark:bg-[#1a1a20] px-3 py-1.5 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800">
-            {user.photoURL && <img src={user.photoURL} alt="Profile" className="w-7 h-7 rounded-full" />}
+            {user.photoURL && <img src={user.photoURL} alt="Profile" className="w-7 h-7 rounded-full" referrerPolicy="no-referrer" onError={(e) => e.target.style.display='none'} />}
             <span className="text-sm font-bold text-gray-700 dark:text-gray-300 hidden lg:block">{user.displayName}</span>
             <button onClick={() => signOut(auth)} className="ml-2 text-gray-400 hover:text-red-500 transition-colors cursor-pointer" title="Sign Out">🚪</button>
           </div>
@@ -396,17 +418,32 @@ function MainDashboard({ user }) {
       {/* TAB 1: DASHBOARD */}
       {activeTab === 'dashboard' && (
         <div className="flex-1 flex flex-col space-y-6 animate-in fade-in duration-300">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-[#121215] p-4 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm">
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-semibold text-gray-500 dark:text-gray-400">Active Term:</span>
-              <select value={activeSemester} onChange={handleSemesterChange} className="text-sm bg-gray-100 dark:bg-[#1a1a20] text-gray-800 dark:text-gray-200 rounded-md px-3 py-1.5 font-bold border border-gray-200 dark:border-gray-700 outline-none cursor-pointer">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-[#121215] p-4 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm">
+            {/* Left: Active Term (Order 1 on both) */}
+            <div className="flex items-center gap-3 w-full md:w-auto order-1">
+              <span className="text-sm font-semibold text-gray-500 dark:text-gray-400 whitespace-nowrap">Active Term:</span>
+              <select value={activeSemester} onChange={handleSemesterChange} className="w-full md:w-auto text-sm bg-gray-100 dark:bg-[#1a1a20] text-gray-800 dark:text-gray-200 rounded-md px-3 py-1.5 font-bold border border-gray-200 dark:border-gray-700 outline-none cursor-pointer">
                 {semesters.map(sem => <option key={sem} value={sem}>{sem}</option>)}
                 <option value="NEW">+ New Semester</option>
               </select>
             </div>
-            <div className="flex bg-gray-100 dark:bg-[#1a1a20] p-1 rounded-lg border border-gray-200 dark:border-gray-800 self-stretch sm:self-auto">
-              <button onClick={() => setActiveView('list')} className={`flex-1 sm:flex-none px-5 py-1.5 rounded-md text-xs font-bold transition-all ${activeView === 'list' ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-red-400 shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}>📋 List View</button>
-              <button onClick={() => setActiveView('calendar')} className={`flex-1 sm:flex-none px-5 py-1.5 rounded-md text-xs font-bold transition-all ${activeView === 'calendar' ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-red-400 shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}>📅 Calendar Grid</button>
+
+            {/* Middle: Lectures vs Tasks Toggle (Order 3 on mobile, Order 2 on laptop) */}
+            {activeView === 'calendar' && (
+              <div className="flex bg-gray-100 dark:bg-[#1a1a20] p-1 rounded-lg border border-gray-200 dark:border-gray-800 w-full md:w-auto self-stretch order-3 md:order-2">
+                <button onClick={() => setGridContentType('Lectures')} className={`flex-1 md:flex-none px-6 py-1.5 rounded-md text-xs font-bold transition-all ${gridContentType === 'Lectures' ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-red-400 shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}>
+                  📚 Lectures
+                </button>
+                <button onClick={() => setGridContentType('Tasks')} className={`flex-1 md:flex-none px-6 py-1.5 rounded-md text-xs font-bold transition-all ${gridContentType === 'Tasks' ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-purple-400 shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}>
+                  🎯 Tasks
+                </button>
+              </div>
+            )}
+
+            {/* Right: List View vs Calendar Grid (Order 2 on mobile, Order 3 on laptop) */}
+            <div className="flex bg-gray-100 dark:bg-[#1a1a20] p-1 rounded-lg border border-gray-200 dark:border-gray-800 w-full md:w-auto self-stretch order-2 md:order-3">
+              <button onClick={() => setActiveView('list')} className={`flex-1 md:flex-none px-5 py-1.5 rounded-md text-xs font-bold transition-all ${activeView === 'list' ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-red-400 shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}>📋 List View</button>
+              <button onClick={() => setActiveView('calendar')} className={`flex-1 md:flex-none px-5 py-1.5 rounded-md text-xs font-bold transition-all ${activeView === 'calendar' ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-red-400 shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}>📅 Calendar Grid</button>
             </div>
           </div>
 
@@ -470,24 +507,69 @@ function MainDashboard({ user }) {
               <div className="bg-white dark:bg-[#121215] rounded-xl shadow-sm p-6 border border-gray-100 dark:border-purple-900/30 h-fit">
                 <div className="flex justify-between items-center mb-6">
                   <h2 className="text-xl font-semibold dark:text-purple-400">Tasks & Events</h2>
-                  <button onClick={() => setShowTaskForm(!showTaskForm)} className="text-xl text-blue-600 dark:text-purple-400 hover:text-blue-800 dark:hover:text-purple-300 font-bold px-3 py-1 bg-blue-50 dark:bg-purple-900/30 rounded-md transition-colors cursor-pointer">
+                  <button 
+                    onClick={() => {
+                      if (showTaskForm) {
+                        // Clear the form data when the user clicks 'X'
+                        setNewTask({ title: '', due: '', time: '', location: '', type: 'Assignment' });
+                      }
+                      setShowTaskForm(!showTaskForm);
+                    }} 
+                    className="text-xl text-blue-600 dark:text-purple-400 hover:text-blue-800 dark:hover:text-purple-300 font-bold px-3 py-1 bg-blue-50 dark:bg-purple-900/30 rounded-md transition-colors cursor-pointer"
+                  >
                     {showTaskForm ? '✕' : '+'}
                   </button>
                 </div>
                 {showTaskForm && (
                   <form onSubmit={handleAddTask} className="mb-6 p-4 bg-gray-50 dark:bg-[#1a1a20] rounded-lg border border-gray-200 dark:border-gray-700 space-y-3">
+                    {/* 1. Task or Event Title */}
                     <input type="text" placeholder="Task or Event Title" required value={newTask.title} onChange={(e) => setNewTask({...newTask, title: e.target.value})} className="w-full p-2 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#121215] text-gray-900 dark:text-gray-200 placeholder-gray-400 outline-none text-sm" />
-                    <div className="flex gap-2">
-                      <input type="text" placeholder="Date (e.g. 25 Aug)" value={newTask.due} onChange={(e) => setNewTask({...newTask, due: e.target.value})} className="w-1/2 p-2 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#121215] text-gray-900 dark:text-gray-200 outline-none text-sm" />
-                      <select value={newTask.type} onChange={(e) => setNewTask({...newTask, type: e.target.value})} className="w-1/2 p-2 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#121215] text-gray-900 dark:text-gray-200 outline-none text-sm">
-                        <option value="Assignment">Assignment</option><option value="Quiz">Quiz</option><option value="Exam">Exam</option><option value="Project">Project</option><option value="Event">Event</option><option value="Workshop">Workshop</option><option value="Other">Other</option>
-                      </select>
+                    
+                    <div className="flex flex-col sm:flex-row gap-3 sm:gap-2">
+                      {/* Date Wrapper (Order 2 on Mobile so it's below Assignment, Order 1 on Laptop so it's on the left) */}
+                      <label className="flex items-center w-full sm:w-[55%] bg-white dark:bg-[#121215] border border-gray-200 dark:border-gray-700 rounded-md px-2 py-2 cursor-pointer order-2 sm:order-1">
+                        <span className="text-xs text-gray-500 font-medium mr-1 whitespace-nowrap">Date:</span>
+                        <input 
+                          type="date" 
+                          value={newTask.due} 
+                          onChange={(e) => setNewTask({...newTask, due: e.target.value})} 
+                          className="bg-transparent flex-1 min-w-0 outline-none border-none text-gray-900 dark:text-gray-200 dark:[color-scheme:dark] cursor-pointer text-sm"
+                          required 
+                        />
+                      </label>
+                      
+                      {/* Assignment Dropdown (Order 1 on Mobile so it's on top, Order 2 on Laptop so it's on the right) */}
+                      <div className="w-full sm:w-[45%] flex items-center bg-white dark:bg-[#121215] border border-gray-200 dark:border-gray-700 rounded-md pr-2 min-w-0 order-1 sm:order-2">
+                        <select value={newTask.type} onChange={(e) => setNewTask({...newTask, type: e.target.value})} className="w-full bg-transparent border-none text-gray-900 dark:text-gray-200 outline-none text-sm cursor-pointer p-2">
+                          <option className="bg-white dark:bg-[#121215] text-gray-900 dark:text-gray-200" value="Assignment">Assignment</option>
+                          <option className="bg-white dark:bg-[#121215] text-gray-900 dark:text-gray-200" value="Quiz">Quiz</option>
+                          <option className="bg-white dark:bg-[#121215] text-gray-900 dark:text-gray-200" value="Exam">Exam</option>
+                          <option className="bg-white dark:bg-[#121215] text-gray-900 dark:text-gray-200" value="Project">Project</option>
+                          <option className="bg-white dark:bg-[#121215] text-gray-900 dark:text-gray-200" value="Event">Event</option>
+                          <option className="bg-white dark:bg-[#121215] text-gray-900 dark:text-gray-200" value="Workshop">Workshop</option>
+                          <option className="bg-white dark:bg-[#121215] text-gray-900 dark:text-gray-200" value="Other">Other</option>
+                        </select>
+                      </div>
                     </div>
-                    <div className="flex gap-2">
-                      <input type="time" value={newTask.time} onChange={(e) => setNewTask({...newTask, time: e.target.value})} className="w-1/2 p-2 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#121215] text-gray-900 dark:text-gray-200 dark:[color-scheme:dark] outline-none text-sm cursor-pointer" />
-                      <input type="text" placeholder="Location (Optional)" value={newTask.location} onChange={(e) => setNewTask({...newTask, location: e.target.value})} className="w-1/2 p-2 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#121215] text-gray-900 dark:text-gray-200 outline-none text-sm" />
+
+                    <div className="flex flex-col sm:flex-row gap-3 sm:gap-2">
+                      {/* Time Wrapper */}
+                      <label className="flex items-center w-full sm:w-1/2 bg-white dark:bg-[#121215] border border-gray-200 dark:border-gray-700 rounded-md px-2 py-2 cursor-pointer">
+                        <span className="text-xs text-gray-500 font-medium mr-1 whitespace-nowrap">Time:</span>
+                        <input 
+                          type="time" 
+                          value={newTask.time} 
+                          onChange={(e) => setNewTask({...newTask, time: e.target.value})} 
+                          className="bg-transparent flex-1 min-w-0 outline-none border-none text-gray-900 dark:text-gray-200 dark:[color-scheme:dark] cursor-pointer text-sm"
+                          required
+                        />
+                      </label>
+                      
+                      {/* Location */}
+                      <input type="text" placeholder="Location (Optional)" value={newTask.location} onChange={(e) => setNewTask({...newTask, location: e.target.value})} className="w-full sm:w-1/2 p-2 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#121215] text-gray-900 dark:text-gray-200 placeholder-gray-400 outline-none text-sm min-w-0" />
                     </div>
-                    <button type="submit" className="w-full bg-blue-600 dark:bg-purple-600 hover:bg-blue-700 dark:hover:bg-purple-700 text-white py-2 rounded-md font-bold transition-colors cursor-pointer text-sm">Save Task</button>
+                    
+                    <button type="submit" className="w-full mt-1 bg-blue-600 dark:bg-purple-600 hover:bg-blue-700 dark:hover:bg-purple-700 text-white py-2 rounded-md font-bold transition-colors cursor-pointer text-sm shadow-sm">Save Task</button>
                   </form>
                 )}
                 <div className="space-y-3">
@@ -523,7 +605,7 @@ function MainDashboard({ user }) {
                 <div className="min-w-full lg:min-w-[800px] w-full relative pb-4">
                   <div className="hidden lg:flex border-b border-gray-200 dark:border-gray-800 sticky top-0 bg-white dark:bg-[#121215] z-20">
                       <div className="w-16 shrink-0 bg-gray-50 dark:bg-[#1a1a20]"></div> 
-                      {weekDays.map(day => (
+                      {displayDays.map(day => (
                           <div key={day} className={`flex-1 text-center py-3 font-bold text-sm border-l border-gray-200 dark:border-gray-800 ${day === currentDayStr ? 'text-blue-600 dark:text-red-400 bg-blue-50/50 dark:bg-red-900/10' : 'text-gray-700 dark:text-gray-300'}`}>
                               {day.substring(0,3).toUpperCase()}
                           </div>
@@ -538,7 +620,7 @@ function MainDashboard({ user }) {
                               className="w-full text-center py-3 font-bold text-sm bg-transparent outline-none text-blue-600 dark:text-red-400 cursor-pointer"
                               style={{ textAlignLast: 'center' }}
                           >
-                              {weekDays.map(day => (
+                              {displayDays.map(day => (
                                   <option key={day} value={day} className="text-gray-900 dark:text-gray-200 bg-white dark:bg-[#121215]">
                                       {day} ▾
                                   </option>
@@ -555,30 +637,52 @@ function MainDashboard({ user }) {
                               </div>
                           ))}
                       </div>
-                      {weekDays.map(day => (
-                          <div key={day} className={`flex-1 relative border-l border-gray-200 dark:border-gray-800 
-                              ${activeGridDay === day ? 'block' : 'hidden lg:block'} 
-                              ${day === currentDayStr ? 'bg-blue-50/30 dark:bg-red-900/5' : ''}`}>
-                              {hoursArray.map(hour => (
-                                  <div key={hour} className="absolute w-full border-t border-gray-100 dark:border-gray-800/60 pointer-events-none"
-                                       style={{ top: `${((hour - startHour) / (endHour - startHour)) * 100}%` }}></div>
-                              ))}
-                              {currentClasses.filter(c => c.day === day).map((lecture) => {
+                      {displayDays.map(day => (
+                        <div key={day} className={`flex-1 relative border-l border-gray-200 dark:border-gray-800 
+                            ${activeGridDay === day ? 'block' : 'hidden lg:block'} 
+                            ${day === currentDayStr ? 'bg-blue-50/30 dark:bg-red-900/5' : ''}`}>
+                            
+                            {/* Horizontal Hour Lines */}
+                            {hoursArray.map(hour => (
+                                <div key={hour} className="absolute w-full border-t border-gray-100 dark:border-gray-800/60 pointer-events-none"
+                                    style={{ top: `${((hour - startHour) / (endHour - startHour)) * 100}%` }}></div>
+                            ))}
+                            
+                            {/* RENDER LECTURES OR TASKS */}
+                            {gridContentType === 'Lectures' ? (
+                              currentClasses.filter(c => c.day === day).map((lecture) => {
                                   const style = getEventStyle(lecture.startTime, lecture.endTime);
                                   const colorClass = getEventColor(lecture.courseCode); 
                                   return (
                                       <div key={lecture.id}
-                                           className={`absolute w-[92%] left-[4%] rounded-md border-l-4 p-2 text-xs overflow-hidden shadow-sm z-10 ${colorClass}`}
-                                           style={style}>
+                                          className={`absolute w-[92%] left-[4%] rounded-md border-l-4 p-2 text-xs overflow-hidden shadow-sm z-10 ${colorClass}`}
+                                          style={style}>
                                           <div className="font-extrabold truncate text-[11px] uppercase tracking-wider">{lecture.courseCode}</div>
                                           <div className="truncate font-bold opacity-90">{lecture.courseName}</div>
                                           <div className="opacity-75 mt-1 font-medium text-[10px] sm:text-xs">{format12Hour(lecture.startTime)} - {format12Hour(lecture.endTime)}</div>
                                           {lecture.room && <div className="opacity-75 font-medium truncate mt-0.5 text-[10px] sm:text-xs">Room {lecture.room}</div>}
                                       </div>
                                   );
-                              })}
-                          </div>
-                      ))}
+                              })
+                            ) : (
+                              tasks.filter(t => {
+                                  if (!t.due || !t.time || t.completed) return false;
+                                  // Safely convert YYYY-MM-DD to a Day string without timezone shifts
+                                  const taskDayStr = new Date(t.due + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long' });
+                                  return taskDayStr === day;
+                              }).map((task) => (
+                                  <div key={task.id}
+                                      className="absolute w-[92%] left-[4%] rounded-md border-l-4 border-purple-500 bg-white dark:bg-[#1a1a20] p-1.5 text-xs overflow-hidden shadow-[0_4px_12px_rgba(0,0,0,0.1)] dark:shadow-[0_4px_12px_rgba(168,85,247,0.15)] z-20 flex flex-col justify-center transition-all hover:scale-[1.02]"
+                                      style={getTaskStyle(task.time)}>
+                                      <div className="font-extrabold truncate text-[11px] text-gray-900 dark:text-purple-300">{task.title}</div>
+                                      <div className="opacity-80 font-medium truncate text-[10px] text-gray-600 dark:text-gray-400">
+                                          {format12Hour(task.time)} {task.location ? `• ${task.location}` : ''}
+                                      </div>
+                                  </div>
+                              ))
+                            )}
+                        </div>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -594,9 +698,11 @@ function MainDashboard({ user }) {
             <h2 className="text-xl font-semibold mb-2 dark:text-red-400">Class Timetable Management</h2>
             <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">Add new lectures or delete existing slots for {activeSemester}.</p>
             <form onSubmit={handleAddClass} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 bg-gray-50 dark:bg-[#1a1a20] p-4 rounded-xl border border-gray-200 dark:border-gray-800">
-              <select value={newClass.day} onChange={(e) => setNewClass({...newClass, day: e.target.value})} className="p-2.5 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#121215] text-gray-900 dark:text-gray-200 outline-none cursor-pointer">
-                {Object.keys(dayValues).map(d => <option key={d} value={d}>{d}</option>)}
-              </select>
+              <div className="flex items-center bg-white dark:bg-[#121215] border border-gray-200 dark:border-gray-700 rounded-md pr-2 focus-within:ring-2 focus-within:ring-red-500">
+                <select value={newClass.day} onChange={(e) => setNewClass({...newClass, day: e.target.value})} className="w-full bg-transparent border-none text-gray-900 dark:text-gray-200 outline-none cursor-pointer p-2.5">
+                  {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(d => <option key={d} value={d} className="bg-white dark:bg-[#121215] text-gray-900 dark:text-gray-200">{d}</option>)}
+                </select>
+              </div>
               <input type="text" placeholder="Course Code (e.g. ENR211)" value={newClass.courseCode} onChange={(e) => setNewClass({...newClass, courseCode: e.target.value})} className="p-2.5 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#121215] text-gray-900 dark:text-gray-200 outline-none" />
               <input type="text" placeholder="Course Name" value={newClass.courseName} onChange={(e) => setNewClass({...newClass, courseName: e.target.value})} className="p-2.5 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#121215] text-gray-900 dark:text-gray-200 lg:col-span-2 outline-none" />
               <input type="text" placeholder="Section (e.g. 2)" value={newClass.section} onChange={(e) => setNewClass({...newClass, section: e.target.value})} className="p-2.5 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#121215] text-gray-900 dark:text-gray-200 outline-none" />
@@ -658,17 +764,19 @@ function MainDashboard({ user }) {
                 </div>
                 {notifSettings.classNotifs && (
                   <div className="flex items-center gap-3 pt-2 border-t border-gray-200 dark:border-gray-800">
-                    <span className="text-sm font-medium">Remind me:</span>
-                    <select value={notifSettings.classLeadTime} onChange={(e) => handleNotifSettingsChange('classLeadTime', e.target.value)} className="bg-white dark:bg-[#121215] border border-gray-300 dark:border-gray-700 p-2 rounded-md text-sm outline-none font-bold cursor-pointer">
-                      <option value="5">5 minutes before</option>
-                      <option value="10">10 minutes before</option>
-                      <option value="15">15 minutes before</option>
-                      <option value="20">20 minutes before</option>
-                      <option value="30">30 minutes before</option>
-                      <option value="45">45 minutes before</option>
-                      <option value="60">1 hour before</option>
+                  <span className="text-sm font-medium">Remind me:</span>
+                  <div className="flex items-center bg-white dark:bg-[#121215] border border-gray-300 dark:border-gray-700 rounded-md pr-2 w-full sm:w-64">
+                    <select value={notifSettings.classLeadTime} onChange={(e) => handleNotifSettingsChange('classLeadTime', e.target.value)} className="w-full bg-transparent border-none text-gray-900 dark:text-gray-200 text-sm outline-none font-bold cursor-pointer p-2">
+                      <option className="bg-white dark:bg-[#121215] text-gray-900 dark:text-gray-200" value="5">5 minutes before</option>
+                      <option className="bg-white dark:bg-[#121215] text-gray-900 dark:text-gray-200" value="10">10 minutes before</option>
+                      <option className="bg-white dark:bg-[#121215] text-gray-900 dark:text-gray-200" value="15">15 minutes before</option>
+                      <option className="bg-white dark:bg-[#121215] text-gray-900 dark:text-gray-200" value="20">20 minutes before</option>
+                      <option className="bg-white dark:bg-[#121215] text-gray-900 dark:text-gray-200" value="30">30 minutes before</option>
+                      <option className="bg-white dark:bg-[#121215] text-gray-900 dark:text-gray-200" value="45">45 minutes before</option>
+                      <option className="bg-white dark:bg-[#121215] text-gray-900 dark:text-gray-200" value="60">1 hour before</option>
                     </select>
                   </div>
+                </div>
                 )}
               </div>
               <div className="p-4 bg-gray-50 dark:bg-[#1a1a20] rounded-xl border border-gray-200 dark:border-gray-800 space-y-4">
@@ -683,21 +791,25 @@ function MainDashboard({ user }) {
                 {notifSettings.taskNotifs && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-gray-200 dark:border-gray-800">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium">Remind me:</span>
-                      <select value={notifSettings.taskLeadTime} onChange={(e) => handleNotifSettingsChange('taskLeadTime', e.target.value)} className="bg-white dark:bg-[#121215] border border-gray-300 dark:border-gray-700 p-2 rounded-md text-sm outline-none font-bold w-full cursor-pointer">
-                        <option value="15">15 minutes before</option>
-                        <option value="60">1 hour before</option>
-                        <option value="1440">1 day before</option>
-                        <option value="10080">1 week before</option>
-                      </select>
+                      <span className="text-sm font-medium whitespace-nowrap">Remind me:</span>
+                      <div className="flex items-center bg-white dark:bg-[#121215] border border-gray-300 dark:border-gray-700 rounded-md pr-2 w-full">
+                        <select value={notifSettings.taskLeadTime} onChange={(e) => handleNotifSettingsChange('taskLeadTime', e.target.value)} className="w-full bg-transparent border-none text-gray-900 dark:text-gray-200 text-sm outline-none font-bold cursor-pointer p-2">
+                          <option className="bg-white dark:bg-[#121215] text-gray-900 dark:text-gray-200" value="15">15 minutes before</option>
+                          <option className="bg-white dark:bg-[#121215] text-gray-900 dark:text-gray-200" value="60">1 hour before</option>
+                          <option className="bg-white dark:bg-[#121215] text-gray-900 dark:text-gray-200" value="1440">1 day before</option>
+                          <option className="bg-white dark:bg-[#121215] text-gray-900 dark:text-gray-200" value="10080">1 week before</option>
+                        </select>
+                      </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium">Repetition:</span>
-                      <select value={notifSettings.taskRepeatFrequency} onChange={(e) => handleNotifSettingsChange('taskRepeatFrequency', e.target.value)} className="bg-white dark:bg-[#121215] border border-gray-300 dark:border-gray-700 p-2 rounded-md text-sm outline-none font-bold w-full cursor-pointer">
-                        <option value="once">Once only</option>
-                        <option value="daily">Daily Digest (Morning/Evening)</option>
-                        <option value="hourly">Every Hour</option>
-                      </select>
+                      <span className="text-sm font-medium whitespace-nowrap">Repetition:</span>
+                      <div className="flex items-center bg-white dark:bg-[#121215] border border-gray-300 dark:border-gray-700 rounded-md pr-2 w-full">
+                        <select value={notifSettings.taskRepeatFrequency} onChange={(e) => handleNotifSettingsChange('taskRepeatFrequency', e.target.value)} className="w-full bg-transparent border-none text-gray-900 dark:text-gray-200 text-sm outline-none font-bold cursor-pointer p-2">
+                          <option className="bg-white dark:bg-[#121215] text-gray-900 dark:text-gray-200" value="once">Once only</option>
+                          <option className="bg-white dark:bg-[#121215] text-gray-900 dark:text-gray-200" value="daily">Daily Digest (Morning/Evening)</option>
+                          <option className="bg-white dark:bg-[#121215] text-gray-900 dark:text-gray-200" value="hourly">Every Hour</option>
+                        </select>
+                      </div>
                     </div>
                   </div>
                 )}
